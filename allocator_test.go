@@ -49,9 +49,12 @@ func TestCanAllocateAllNumbers(t *testing.T) {
 	}()
 
 	allocator := ConcurrentBitmap(mem)
+	if m := allocator.Max(); m != uint64(size)*8 {
+		t.Fatalf("1 bit per number should yield size * 8 max possible allocations. Got %d", m)
+	}
 	// allocate size * 8 numbers
-	allocated := make(map[uint64]struct{}, size*8)
-	for i := uint64(0); i < uint64(size)*8; i++ {
+	allocated := make(map[uint64]struct{}, allocator.Max())
+	for i := uint64(0); i < allocator.Max(); i++ {
 		n, err := allocator.Allocate()
 		if err != nil {
 			t.Fatal(err)
@@ -59,7 +62,7 @@ func TestCanAllocateAllNumbers(t *testing.T) {
 		allocated[n] = struct{}{}
 	}
 	// all allocated?
-	for i := uint64(0); i < uint64(size)*8; i++ {
+	for i := uint64(0); i < allocator.Max(); i++ {
 		if _, ok := allocated[i]; !ok {
 			t.Fatalf("%d should have been allocated", i)
 		}
@@ -94,6 +97,9 @@ func TestParallelAllocation(t *testing.T) {
 	}()
 
 	allocator := ConcurrentBitmap(mem)
+	if m := allocator.Max(); m != uint64(size)*8 {
+		t.Fatalf("1 bit per number should yield size * 8 max possible allocations. Got %d", m)
+	}
 
 	var wg sync.WaitGroup
 	// 4 x 16384 allocations
