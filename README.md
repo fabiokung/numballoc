@@ -18,21 +18,26 @@ deallocations are reasonably balanced.
 package main
 
 import (
+	"fmt"
+
 	"github.com/fabiokung/numballoc"
 )
+
 func main() {
 	// shared memory can be safely used by multiple processes
-	mem, err := numballoc.LoadShared(name, size)
+	var size uint32 = 256 // bytes, can allocate 256 * 8 numbers
+	mem, err := numballoc.LoadShared("my-memory-region", size)
 	if err != nil {
 		panic(err)
 	}
 	defer mem.Close()
 
-	allocator := ConcurrentBitmap(mem)
+	allocator := numballoc.ConcurrentBitmap(mem)
 	number, err := allocator.Allocate()
 	if err != nil {
 		panic(err)
 	}
+	fmt.Printf("%d\n", number)
 	// number is guaranteed to be unique across all processes sharing the
 	// same memory region
 }

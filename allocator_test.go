@@ -1,6 +1,7 @@
 package numballoc
 
 import (
+	"log"
 	"math/rand"
 	"os"
 	"strconv"
@@ -50,12 +51,21 @@ func TestCanAllocateAllNumbers(t *testing.T) {
 
 	allocator := ConcurrentBitmap(mem)
 	// allocate size * 8 numbers
+	allocated := make(map[uint64]struct{}, size*8)
 	for i := uint64(0); i < uint64(size)*8; i++ {
-		if _, err := allocator.Allocate(); err != nil {
+		n, err := allocator.Allocate()
+		if err != nil {
 			t.Fatal(err)
 		}
+		allocated[n] = struct{}{}
+		log.Printf("allocated: %d\n", n)
 	}
 	// all allocated?
+	for i := uint64(0); i < uint64(size)*8; i++ {
+		if _, ok := allocated[i]; !ok {
+			t.Fatalf("%d should have been allocated", i)
+		}
+	}
 	if _, err := allocator.Allocate(); err != ErrNoFreeNumber {
 		t.Fatalf("expected %v, got %v", err)
 	}

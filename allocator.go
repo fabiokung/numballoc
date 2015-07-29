@@ -60,10 +60,11 @@ blocks:
 		for mask, offset := uint32(0x80000000), uint32(0); mask != 0x00000000; mask >>= 1 {
 			bitSet := block | mask
 			if bitSet == block {
-				continue // bit was already allocated
+				offset++
+				continue retry // bit was already allocated
 			}
 			if atomic.CompareAndSwapUint32(&blocks[i], block, bitSet) {
-				// allocated! start from i+1 next time
+				// allocated! start from here next time
 				atomic.StoreUint32(&a.hint, i)
 				return base + uint64(offset), nil
 			} else {
