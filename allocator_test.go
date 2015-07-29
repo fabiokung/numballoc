@@ -1,7 +1,6 @@
 package numballoc
 
 import (
-	"log"
 	"math/rand"
 	"os"
 	"strconv"
@@ -58,7 +57,6 @@ func TestCanAllocateAllNumbers(t *testing.T) {
 			t.Fatal(err)
 		}
 		allocated[n] = struct{}{}
-		log.Printf("allocated: %d\n", n)
 	}
 	// all allocated?
 	for i := uint64(0); i < uint64(size)*8; i++ {

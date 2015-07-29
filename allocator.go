@@ -48,7 +48,7 @@ blocks:
 		if i >= size {
 			i %= size
 		}
-		base := uint64(i) * 8
+		base := uint64(i) * 32
 
 		block := atomic.LoadUint32(&blocks[i])
 		if block == 0xFFFFFFFF {
