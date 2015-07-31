@@ -17,18 +17,26 @@ type Allocator interface {
 // ConcurrentBitmap is a lock-free allocator that stores allocations (free/used
 // numbers) as a bitmap. Each number is a position in the bitmap: 0 means free,
 // 1 means allocated.
-func ConcurrentBitmap(mem Memory) Allocator {
-	return &concurrentBitmap{hint: 0, mem: mem}
+//
+// mem.Size() is in bytes and each bit is a number, thus max will be
+// min(mem.Size() * 8, max), or mem.Size() * 8 when 0 is provided.
+func ConcurrentBitmap(mem Memory, max uint64) Allocator {
+	// mem.Size() is in bytes, each bit is a possible allocation
+	m := uint64(mem.Size()) << 3 // mem.Size() * 8
+	if max != 0 && max < m {
+		m = max
+	}
+	return &concurrentBitmap{hint: 0, mem: mem, max: m}
 }
 
 type concurrentBitmap struct {
 	hint uint32 // where to start searching
 	mem  Memory
+	max  uint64
 }
 
 func (a *concurrentBitmap) Max() uint64 {
-	// mem.Size() is in bytes, each bit is a possible allocation
-	return uint64(a.mem.Size()) << 3 // size * 8
+	return a.max
 }
 
 // Allocate will store the block position of the last allocated number/bit, so
@@ -37,18 +45,22 @@ func (a *concurrentBitmap) Max() uint64 {
 // balanced
 func (a *concurrentBitmap) Allocate() (uint64, error) {
 	var (
-		blocks = a.mem.Blocks()
-		hint   = a.hint % uint32(len(blocks))
-		size   = uint32(len(blocks))
+		blocks    = a.mem.Blocks()
+		lastBlock = uint32(a.Max() >> 5) // max / 32, each block has 32 bits
+		hint      = a.hint % lastBlock
 	)
+	if r := a.Max() % 32; r != 0 {
+		// needs some more bits in an extra block
+		lastBlock++
+	}
 
 blocks:
-	for j, i := uint32(0), hint; j <= size; i++ {
+	for j, i := uint32(0), hint; j <= lastBlock; i++ {
 		j++
-		if i >= size {
-			i %= size
+		if i >= lastBlock {
+			i %= lastBlock
 		}
-		base := uint64(i) * 32
+		base := uint64(i) << 5 // i * 32
 
 		block := atomic.LoadUint32(&blocks[i])
 		if block == 0xFFFFFFFF {
@@ -58,6 +70,12 @@ blocks:
 	retry:
 		// try all 32 bits on this block
 		for mask, offset := uint32(0x80000000), uint32(0); mask != 0x00000000; mask >>= 1 {
+			if i == lastBlock-1 {
+				// this is the last block, only try the necessary bits
+				if r := uint32(a.Max() % 32); r != 0 && offset >= r {
+					break retry
+				}
+			}
 			bitSet := block | mask
 			if bitSet == block {
 				offset++
