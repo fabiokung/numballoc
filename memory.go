@@ -65,6 +65,9 @@ func LoadShared(name string, size uint32) (SharedMemory, error) {
 	}
 	// size is in bytes, blocks have 4 bytes (uint32)
 	blocksLen := size >> 2 // size / 4
+	if blocksLen == 0 {
+		blocksLen = 1 // at least 1 block
+	}
 	blocks := *(*sliceType)(unsafe.Pointer(&data))
 	blocks.len = int(blocksLen)
 	blocks.cap = int(blocksLen)

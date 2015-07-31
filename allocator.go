@@ -2,6 +2,7 @@ package numballoc
 
 import (
 	"errors"
+	"log"
 	"sync/atomic"
 )
 
@@ -47,11 +48,14 @@ func (a *concurrentBitmap) Allocate() (uint64, error) {
 	var (
 		blocks    = a.mem.Blocks()
 		lastBlock = uint32(a.Max() >> 5) // max / 32, each block has 32 bits
-		hint      = a.hint % lastBlock
+		hint      = a.hint
 	)
 	if r := a.Max() % 32; r != 0 {
 		// needs some more bits in an extra block
 		lastBlock++
+	}
+	if hint >= lastBlock {
+		hint %= lastBlock
 	}
 
 blocks:
@@ -62,6 +66,7 @@ blocks:
 		}
 		base := uint64(i) << 5 // i * 32
 
+		log.Printf("i: %d, j: %d, base: %d, lastBlock: %d", i, j, base, lastBlock)
 		block := atomic.LoadUint32(&blocks[i])
 		if block == 0xFFFFFFFF {
 			continue // all being used

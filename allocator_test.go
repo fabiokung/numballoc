@@ -138,6 +138,43 @@ func TestCustomMaxNumbers(t *testing.T) {
 	}
 }
 
+func TestOneNumber(t *testing.T) {
+	var (
+		size uint32 = 1
+		max  uint64 = 1
+		name        = "bitmap-test-" + uuid.New()
+	)
+
+	mem, err := LoadShared(name, size)
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer func() {
+		if err := mem.Close(); err != nil {
+			t.Error(err)
+		}
+		if err := DestroyShared(name); err != nil {
+			t.Error(err)
+		}
+	}()
+
+	allocator := ConcurrentBitmap(mem, max)
+	if m := allocator.Max(); m != max {
+		t.Fatalf("Expected a custom max %d. Got %d", max, m)
+	}
+	// allocate max numbers
+	n, err := allocator.Allocate()
+	if err != nil {
+		t.Fatal(err)
+	}
+	if _, err := allocator.Allocate(); err != ErrNoFreeNumber {
+		t.Fatalf("expected %v, got %v", err)
+	}
+	if err := allocator.Free(n); err != nil {
+		t.Fatal(err)
+	}
+}
+
 func TestParallelAllocation(t *testing.T) {
 	var (
 		size uint32 = 8192 // bytes: 8192 * 8 = 65536 numbers
