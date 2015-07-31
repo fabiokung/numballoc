@@ -32,7 +32,7 @@ func main() {
 	}
 	defer mem.Close()
 
-	allocator := numballoc.ConcurrentBitmap(mem)
+	allocator := numballoc.ConcurrentBitmap(mem, 0)
 	number, err := allocator.Allocate()
 	if err != nil {
 		panic(err)
