@@ -2,7 +2,6 @@ package numballoc
 
 import (
 	"errors"
-	"log"
 	"sync/atomic"
 )
 
@@ -66,7 +65,6 @@ blocks:
 		}
 		base := uint64(i) << 5 // i * 32
 
-		log.Printf("i: %d, j: %d, base: %d, lastBlock: %d", i, j, base, lastBlock)
 		block := atomic.LoadUint32(&blocks[i])
 		if block == 0xFFFFFFFF {
 			continue // all being used
